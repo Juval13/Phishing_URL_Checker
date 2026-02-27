@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard | Heuristic Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="text-center mb-10">
+        <h1 class="text-4xl font-extrabold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-2">PhishGuard Heuristic</h1>
+        <p class="text-slate-400">Rule-based URL Analysis</p>
+    </div>
+
+    <div class="w-full max-w-2xl bg-slate-800/50 border border-slate-700 p-8 rounded-2xl shadow-2xl backdrop-blur-md">
+        <div class="relative group">
+            <input type="text" id="urlInput" 
+                class="block w-full pl-6 pr-32 py-4 bg-slate-900/80 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Paste URL here...">
+            <button onclick="analyzeURL()" 
+                class="absolute right-2 top-2 bottom-2 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-all">
+                Analyze
+            </button>
+        </div>
+
+        <div id="resultArea" class="hidden mt-8 p-6 bg-slate-900/50 rounded-xl border border-slate-700">
+            <div class="flex items-center justify-between mb-4">
+                <span id="statusBadge" class="px-4 py-1 rounded-full text-xs font-bold"></span>
+                <span id="riskScore" class="text-2xl font-bold"></span>
+            </div>
+            <p id="details" class="text-slate-400 text-sm italic"></p>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeURL() {
+            const url = document.getElementById('urlInput').value;
+            if(!url) return alert("Enter a URL");
+
+            const response = await fetch('http://127.0.0.1:8000/analyze', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url: url })
+            });
+            const data = await response.json();
+
+            const area = document.getElementById('resultArea');
+            const badge = document.getElementById('statusBadge');
+            const score = document.getElementById('riskScore');
+            const details = document.getElementById('details');
+
+            area.classList.remove('hidden');
+            score.innerText = data.risk_score + "% Risk";
+            details.innerText = "Features detected: " + JSON.stringify(data.features);
+
+            if(data.status === "Malicious") {
+                badge.innerText = "DANGER";
+                badge.className = "px-4 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-500 border border-red-500/50";
+            } else {
+                badge.innerText = "SAFE";
+                badge.className = "px-4 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/50";
+            }
+        }
+    </script>
+</body>
+</html>
