@@ -4,65 +4,392 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PhishGuard | Heuristic Scanner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --border: #1e2d45;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --text: #e2e8f0;
+            --muted: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 660px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            animation: fadeDown 0.6s ease both;
+        }
+
+        .shield-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(6,182,212,0.2));
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 14px;
+            margin-bottom: 1rem;
+            font-size: 1.6rem;
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.4rem;
+        }
+
+        .subtitle {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .card {
+            background: rgba(17, 24, 39, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.2rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 24px 48px rgba(0,0,0,0.4);
+            animation: fadeUp 0.6s 0.1s ease both;
+        }
+
+        .input-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.6rem;
+            display: block;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 0.7rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            padding: 0.8rem 1rem;
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.82rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+
+        input[type="text"]::placeholder { color: var(--muted); }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border: none;
+            border-radius: 11px;
+            padding: 0.8rem 1.5rem;
+            color: white;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+
+        button:hover { opacity: 0.88; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        .error-msg {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.76rem;
+            color: #f59e0b;
+            background: rgba(245,158,11,0.08);
+            border: 1px solid rgba(245,158,11,0.2);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .result-area {
+            display: none;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .result-area.visible { display: block; animation: fadeUp 0.4s ease both; }
+
+        .score-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .status-badge.safe {
+            background: rgba(16,185,129,0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16,185,129,0.35);
+        }
+
+        .status-badge.danger {
+            background: rgba(239,68,68,0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239,68,68,0.35);
+        }
+
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .safe .dot { background: var(--accent-green); }
+        .danger .dot { background: var(--accent-red); }
+
+        .risk-score {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .risk-score.safe { color: var(--accent-green); }
+        .risk-score.danger { color: var(--accent-red); }
+
+        .progress-track {
+            height: 5px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 1.4rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+        }
+
+        .progress-fill.safe { background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green)); }
+        .progress-fill.danger { background: linear-gradient(90deg, #f59e0b, var(--accent-red)); }
+
+        .features-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.66rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.65rem;
+        }
+
+        .features-list { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+        .feature-tag {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.28rem 0.7rem;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #fca5a5;
+            border-radius: 6px;
+        }
+
+        .no-flags {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.76rem;
+            color: var(--accent-green);
+        }
+
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.35; }
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
+<body>
+<div class="container">
 
-    <div class="text-center mb-10">
-        <h1 class="text-4xl font-extrabold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent mb-2">PhishGuard Heuristic</h1>
-        <p class="text-slate-400">Rule-based URL Analysis</p>
+    <div class="header">
+        <div class="shield-icon">🛡️</div>
+        <h1>PhishGuard</h1>
+        <p class="subtitle">Heuristic URL Scanner</p>
     </div>
 
-    <div class="w-full max-w-2xl bg-slate-800/50 border border-slate-700 p-8 rounded-2xl shadow-2xl backdrop-blur-md">
-        <div class="relative group">
-            <input type="text" id="urlInput" 
-                class="block w-full pl-6 pr-32 py-4 bg-slate-900/80 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Paste URL here...">
-            <button onclick="analyzeURL()" 
-                class="absolute right-2 top-2 bottom-2 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-all">
-                Analyze
-            </button>
+    <div class="card">
+        <label class="input-label" for="urlInput">Enter URL to analyze</label>
+        <div class="input-wrapper">
+            <input type="text" id="urlInput" placeholder="https://example.com/path?query=value" />
+            <button onclick="analyzeURL()">Analyze</button>
         </div>
 
-        <div id="resultArea" class="hidden mt-8 p-6 bg-slate-900/50 rounded-xl border border-slate-700">
-            <div class="flex items-center justify-between mb-4">
-                <span id="statusBadge" class="px-4 py-1 rounded-full text-xs font-bold"></span>
-                <span id="riskScore" class="text-2xl font-bold"></span>
+        <div class="error-msg" id="errorMsg">
+            ⚠ Could not connect to backend. Make sure main.py is running on port 8000.
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <div class="score-row">
+                <span class="status-badge" id="statusBadge">
+                    <span class="dot"></span>
+                    <span id="statusText"></span>
+                </span>
+                <span class="risk-score" id="riskScore"></span>
             </div>
-            <p id="details" class="text-slate-400 text-sm italic"></p>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill" style="width:0%"></div>
+            </div>
+            <div class="features-label">Detected Risk Flags</div>
+            <div class="features-list" id="featuresList"></div>
         </div>
     </div>
 
-    <script>
-        async function analyzeURL() {
-            const url = document.getElementById('urlInput').value;
-            if(!url) return alert("Enter a URL");
+</div>
+<script>
+    async function analyzeURL() {
+        const url = document.getElementById('urlInput').value.trim();
+        if (!url) { alert("Please enter a URL to analyze."); return; }
 
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.style.display = 'none';
+
+        try {
             const response = await fetch('http://127.0.0.1:8000/analyze', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ url: url })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
             });
             const data = await response.json();
-
-            const area = document.getElementById('resultArea');
-            const badge = document.getElementById('statusBadge');
-            const score = document.getElementById('riskScore');
-            const details = document.getElementById('details');
-
-            area.classList.remove('hidden');
-            score.innerText = data.risk_score + "% Risk";
-            details.innerText = "Features detected: " + JSON.stringify(data.features);
-
-            if(data.status === "Malicious") {
-                badge.innerText = "DANGER";
-                badge.className = "px-4 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-500 border border-red-500/50";
-            } else {
-                badge.innerText = "SAFE";
-                badge.className = "px-4 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/50";
-            }
+            renderResult(data.risk_score, data.status, data.features);
+        } catch (err) {
+            errorMsg.style.display = 'block';
         }
-    </script>
+    }
+
+    function renderResult(score, status, features) {
+        const area         = document.getElementById('resultArea');
+        const badge        = document.getElementById('statusBadge');
+        const statusText   = document.getElementById('statusText');
+        const riskScore    = document.getElementById('riskScore');
+        const progressFill = document.getElementById('progressFill');
+        const featuresList = document.getElementById('featuresList');
+
+        area.classList.remove('visible');
+        void area.offsetWidth;
+        area.classList.add('visible');
+
+        const isMalicious = status === "Malicious";
+        riskScore.textContent  = score + "% Risk";
+        badge.className        = "status-badge " + (isMalicious ? "danger" : "safe");
+        statusText.textContent = isMalicious ? "DANGER" : "SAFE";
+        riskScore.className    = "risk-score "   + (isMalicious ? "danger" : "safe");
+        progressFill.className = "progress-fill " + (isMalicious ? "danger" : "safe");
+
+        progressFill.style.width = "0%";
+        setTimeout(() => { progressFill.style.width = score + "%"; }, 50);
+
+        featuresList.innerHTML = "";
+        if (features.length === 0) {
+            featuresList.innerHTML = '<span class="no-flags">✓ No suspicious patterns detected</span>';
+        } else {
+            features.forEach(f => {
+                const tag = document.createElement('span');
+                tag.className = 'feature-tag';
+                tag.textContent = f;
+                featuresList.appendChild(tag);
+            });
+        }
+    }
+
+    document.getElementById('urlInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') analyzeURL();
+    });
+</script>
 </body>
 </html>
